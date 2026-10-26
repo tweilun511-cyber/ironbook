@@ -1,0 +1,74 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Layout: one-column phone shell, fixed tab bar, full-screen sheets over it.
+   Palette borrows IWF plate colours as semantics: 20 kg blue = action,
+   10 kg green = completed set, 15 kg yellow = warm-up, red = destructive. */
+:root {
+  --bg: 13 16 21;        /* blue-graphite, not neutral black */
+  --surface: 22 27 34;
+  --raised: 32 38 48;
+  --line: 44 52 64;
+  --fg: 236 240 245;
+  --mute: 140 150 166;
+  --accent: 77 141 255;  /* 20 kg plate blue */
+  --done: 52 199 123;    /* 10 kg plate green */
+  --warm: 245 190 60;    /* 15 kg plate yellow */
+  --danger: 255 92 92;
+  --gold: 255 200 87;
+  color-scheme: dark;
+}
+:root.theme-light {
+  --bg: 243 245 248;
+  --surface: 255 255 255;
+  --raised: 233 237 243;
+  --line: 214 220 229;
+  --fg: 17 22 30;
+  --mute: 98 108 124;
+  --accent: 30 104 235;
+  --done: 22 160 92;
+  --warm: 196 136 0;
+  --danger: 220 50 50;
+  --gold: 190 130 0;
+  color-scheme: light;
+}
+
+html, body, #root { height: 100%; }
+body {
+  background: rgb(var(--bg));
+  color: rgb(var(--fg));
+  font-family: Barlow, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+  font-size: 16px;
+}
+* { -webkit-touch-callout: none; }
+input, textarea, select { font-size: 16px; } /* stop iOS zoom on focus */
+input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+input[type=number] { -moz-appearance: textfield; }
+.tnum { font-variant-numeric: tabular-nums; }
+.gutter {
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
+.pt-safe { padding-top: env(safe-area-inset-top, 0px); }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { scrollbar-width: none; }
+h1, h2, h3 { text-wrap: balance; }
+.label { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; font-weight: 600; color: rgb(var(--mute)); }
+:focus-visible { outline: 2px solid rgb(var(--accent)); outline-offset: 2px; }
+button { touch-action: manipulation; }
+
+@keyframes sheet-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@keyframes page-in { from { transform: translateX(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes pop { 0% { transform: scale(.85); } 60% { transform: scale(1.08); } 100% { transform: scale(1); } }
+.anim-sheet { animation: sheet-up .28s cubic-bezier(.2,.8,.2,1); }
+.anim-page { animation: page-in .22s ease-out; }
+.anim-fade { animation: fade-in .2s ease-out; }
+.anim-pop { animation: pop .25s ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .anim-sheet, .anim-page, .anim-fade, .anim-pop { animation: none; }
+}
