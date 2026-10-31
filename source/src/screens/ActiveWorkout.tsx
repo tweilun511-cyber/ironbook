@@ -4,7 +4,7 @@ import { useNav } from '../nav';
 import { Button, Confirm, IconButton, Sheet, cx, inputCls } from '../ui/kit';
 import { IconDown, IconTimer } from '../ui/icons';
 import { Elapsed, WorkoutLogger } from './WorkoutLogger';
-import { beep, haptic, primeAudio, useNow, useWakeLock } from '../lib/hooks';
+import { ringBell, haptic, primeAudio, useNow, useWakeLock } from '../lib/hooks';
 import { fmtClock, fmtDate } from '../lib/util';
 
 export function ActiveWorkout() {
@@ -106,7 +106,7 @@ export function RestBar({ compact = false }: { compact?: boolean }) {
   useEffect(() => {
     if (rest && left <= 0 && fired.current !== rest.endsAt) {
       fired.current = rest.endsAt;
-      if (sound) beep();
+      if (sound) ringBell();
       haptic(300);
       stop();
     }

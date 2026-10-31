@@ -7,6 +7,7 @@ import { haptic, primeAudio, useNow } from '../lib/hooks';
 import { ActionSheet, Button, Sheet, Stepper, cx, inputCls, type Action } from '../ui/kit';
 import { IconCheck, IconDots, IconDown, IconLink, IconNote, IconPlus, IconTimer, IconTrash, IconUp } from '../ui/icons';
 import { ExercisePicker } from './ExercisePicker';
+import { ReorderOverlay, moveItem, useLongPress } from '../ui/reorder';
 import { useNav } from '../nav';
 
 const SS_COLORS = ['var(--accent)', 'var(--warm)', 'var(--done)', 'var(--gold)', 'var(--danger)'];
@@ -109,6 +110,8 @@ export function WorkoutLogger({ workout, mode, onChange, header, footer }: {
   const [menu, setMenu] = useState<{ title: string; actions: Action[] } | null>(null);
   const [restFor, setRestFor] = useState<string | null>(null);
   const [notesOpen, setNotesOpen] = useState<Record<string, boolean>>({});
+  const [reorder, setReorder] = useState<{ index: number; y: number } | null>(null);
+  const press = useLongPress((y, index) => setReorder({ index, y }));
 
   const prevMap = useMemo(() => {
     const m = new Map<string, WorkoutExercise | undefined>();
@@ -209,8 +212,8 @@ export function WorkoutLogger({ workout, mode, onChange, header, footer }: {
       w.exercises.forEach((e) => e.supersetId && counts.set(e.supersetId, (counts.get(e.supersetId) ?? 0) + 1));
       w.exercises.forEach((e) => { if (e.supersetId && counts.get(e.supersetId) === 1) e.supersetId = undefined; });
     }) });
-    if (ei > 0) actions.push({ label: 'Move up', icon: <IconUp size={20} />, onClick: () => onChange((w) => { const [x] = w.exercises.splice(ei, 1); w.exercises.splice(ei - 1, 0, x); }) });
-    if (next) actions.push({ label: 'Move down', icon: <IconDown size={20} />, onClick: () => onChange((w) => { const [x] = w.exercises.splice(ei, 1); w.exercises.splice(ei + 1, 0, x); }) });
+    if (ei > 0) actions.push({ label: 'Move up', icon: <IconUp size={20} />, onClick: () => onChange((w) => moveItem(w.exercises, ei, ei - 1)) });
+    if (next) actions.push({ label: 'Move down', icon: <IconDown size={20} />, onClick: () => onChange((w) => moveItem(w.exercises, ei, ei + 1)) });
     actions.push({ label: 'Replace exercise', onClick: () => setPicker({ replace: we.uid }) });
     actions.push({ label: 'Remove exercise', danger: true, icon: <IconTrash size={20} />, onClick: () => onChange((w) => { w.exercises.splice(ei, 1); }) });
     setMenu({ title: ex?.name ?? 'Exercise', actions });
@@ -234,7 +237,7 @@ export function WorkoutLogger({ workout, mode, onChange, header, footer }: {
           return (
             <section key={we.uid} className={cx('relative', ssPrev && '-mt-4')} style={color ? { paddingLeft: 10 } : undefined}>
               {color && <div className="absolute bottom-0 left-0 top-1 w-[3px] rounded-full" style={{ background: `rgb(${color})` }} />}
-              <div className="flex items-start gap-2">
+              <div className="flex select-none items-start gap-2" data-index={ei} {...press}>
                 <div className="min-w-0 flex-1 pt-1">
                   {color && !ssPrev && <div className="label mb-0.5" style={{ color: `rgb(${color})` }}>Superset</div>}
                   <h3 className="font-display text-[21px] font-semibold leading-tight tracking-wide text-accent">{ex?.name ?? 'Deleted exercise'}</h3>
@@ -296,6 +299,20 @@ export function WorkoutLogger({ workout, mode, onChange, header, footer }: {
             ids.forEach((id) => w.exercises.push({ uid: uid(), exerciseId: id, sets: [makeSet(), makeSet(), makeSet()] }));
           }
         })} />
+      {reorder && (
+        <ReorderOverlay
+          initialIndex={reorder.index}
+          initialY={reorder.y}
+          items={workout.exercises.map((e) => ({
+            key: e.uid,
+            title: exMap.get(e.exerciseId)?.name ?? 'Deleted exercise',
+            subtitle: `${e.sets.length} sets${e.sets.some((s) => s.done) ? ` · ${e.sets.filter((s) => s.done).length} done` : ''}`,
+            accent: e.supersetId ? ssColor.get(e.supersetId) : undefined,
+          }))}
+          onMove={(from, to) => onChange((w) => moveItem(w.exercises, from, to))}
+          onClose={() => setReorder(null)}
+        />
+      )}
       <ActionSheet open={!!menu} onClose={() => setMenu(null)} title={menu?.title} actions={menu?.actions ?? []} />
       <Sheet open={!!restTarget} onClose={() => setRestFor(null)} title="Rest timer" z={70}>
         {restTarget && (

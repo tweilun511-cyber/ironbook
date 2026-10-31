@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { useExerciseMap, useStore } from '../store';
 import { useNav } from '../nav';
 import { Button, Confirm, Field, Page, Stepper, cx, inputCls } from '../ui/kit';
-import { IconDown, IconLink, IconPlus, IconTrash, IconUp } from '../ui/icons';
+import { IconLink, IconPlus, IconTrash } from '../ui/icons';
 import { ExercisePicker } from './ExercisePicker';
+import { ReorderOverlay, moveItem, useLongPress } from '../ui/reorder';
 import type { Template, TemplateExercise } from '../types';
 import { deepClone, parseNum, uid } from '../lib/util';
 
@@ -30,6 +31,8 @@ export function TemplateEditor({ id }: { id: string | null }) {
   const [picker, setPicker] = useState(false);
   const [confirmDel, setConfirmDel] = useState(false);
   const [confirmLeave, setConfirmLeave] = useState(false);
+  const [reorder, setReorder] = useState<{ index: number; y: number } | null>(null);
+  const press = useLongPress((y, index) => setReorder({ index, y }));
 
   const dirty = JSON.stringify(draft) !== JSON.stringify(existing ?? { id: draft.id, name: '', exercises: [], createdAt: draft.createdAt, updatedAt: draft.updatedAt });
   const edit = (fn: (t: Template) => void) => setDraft((d) => { const n = deepClone(d); fn(n); return n; });
@@ -63,19 +66,18 @@ export function TemplateEditor({ id }: { id: string | null }) {
           </select>
         </Field>
 
+        {draft.exercises.length > 1 && <div className="-mb-2 mt-1 text-[13px] text-mute">Hold an exercise name to drag it into a new order.</div>}
         <div className="mt-2 flex flex-col gap-3">
           {draft.exercises.map((te, i) => {
             const ex = exMap.get(te.exerciseId);
             const linkedNext = !!te.supersetId && draft.exercises[i + 1]?.supersetId === te.supersetId;
             return (
               <div key={te.uid} className={cx('rounded-2xl bg-surface p-4', te.supersetId && 'border-l-[3px] border-accent')}>
-                <div className="flex items-start gap-2">
+                <div className="flex select-none items-start gap-2" data-index={i} {...press}>
                   <div className="min-w-0 flex-1">
                     <div className="font-display text-[19px] font-semibold leading-tight tracking-wide">{ex?.name ?? 'Deleted exercise'}</div>
                     <div className="text-[13px] text-mute">{ex?.primary.join(', ')}</div>
                   </div>
-                  <button aria-label="Move up" disabled={i === 0} onClick={() => edit((t) => { const [x] = t.exercises.splice(i, 1); t.exercises.splice(i - 1, 0, x); })} className="grid h-10 w-10 place-items-center rounded-lg bg-raised disabled:opacity-30"><IconUp size={18} /></button>
-                  <button aria-label="Move down" disabled={i === draft.exercises.length - 1} onClick={() => edit((t) => { const [x] = t.exercises.splice(i, 1); t.exercises.splice(i + 1, 0, x); })} className="grid h-10 w-10 place-items-center rounded-lg bg-raised disabled:opacity-30"><IconDown size={18} /></button>
                   <button aria-label="Remove" onClick={() => edit((t) => { t.exercises.splice(i, 1); cleanSupersets(t); })} className="grid h-10 w-10 place-items-center rounded-lg bg-danger/15 text-danger"><IconTrash size={18} /></button>
                 </div>
                 <div className="mt-3 grid grid-cols-2 gap-3">
@@ -115,6 +117,12 @@ export function TemplateEditor({ id }: { id: string | null }) {
         <Button onClick={save}>Save routine</Button>
         {existing && <Button variant="danger" onClick={() => setConfirmDel(true)}>Delete routine</Button>}
       </div>
+      {reorder && (
+        <ReorderOverlay initialIndex={reorder.index} initialY={reorder.y}
+          items={draft.exercises.map((e) => ({ key: e.uid, title: exMap.get(e.exerciseId)?.name ?? 'Deleted exercise', subtitle: `${e.sets} × ${e.repMin}–${e.repMax}`, accent: e.supersetId ? 'var(--accent)' : undefined }))}
+          onMove={(from, to) => edit((t) => moveItem(t.exercises, from, to))}
+          onClose={() => setReorder(null)} />
+      )}
       <ExercisePicker open={picker} onClose={() => setPicker(false)} onPick={(ids) => edit((t) => {
         ids.forEach((exerciseId) => t.exercises.push({ uid: uid(), exerciseId, sets: 3, warmups: 0, repMin: 8, repMax: 12 }));
       })} />

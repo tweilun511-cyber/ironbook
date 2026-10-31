@@ -3,6 +3,7 @@ import { normalize, useStore } from '../store';
 import { useNav } from '../nav';
 import { Button, Confirm, Segmented, Sheet, Stepper, cx, inputCls } from '../ui/kit';
 import { repo, requestPersistentStorage } from '../storage/repository';
+import { primeAudio, ringBell } from '../lib/hooks';
 import { fmtClock, fmtDate, parseNum } from '../lib/util';
 import type { AppData } from '../types';
 
@@ -87,7 +88,12 @@ export function Settings() {
           <div className="w-40"><Stepper value={s.defaultRestSec} step={15} min={15} max={600} onChange={(v) => update({ defaultRestSec: v })} /></div>
         </Row>
         <Row label="Auto-start rest timer" sub="After ticking a set"><Toggle id="set-autorest" checked={s.autoRest} onChange={(v) => update({ autoRest: v })} /></Row>
-        <Row label="Timer sound" sub="Beeps when rest ends (phone not on silent)"><Toggle id="set-sound" checked={s.sound} onChange={(v) => update({ sound: v })} /></Row>
+        <Row label="Ring bell" sub="Ding-ding-ding when rest ends (ringer on)">
+          <div className="flex items-center gap-2">
+            <button onClick={() => { primeAudio(); ringBell(); }} className="h-9 rounded-lg bg-raised px-3 text-[14px] font-semibold active:bg-line">Test</button>
+            <Toggle id="set-sound" checked={s.sound} onChange={(v) => update({ sound: v })} />
+          </div>
+        </Row>
         <Row label="Show RIR column"><Toggle id="set-rir" checked={s.showRir} onChange={(v) => update({ showRir: v })} /></Row>
         <Row label="Bodyweight (kg)" sub="Adds to pull-up/dip load for e1RM & volume">
           <input id="set-bw" inputMode="decimal" placeholder="—" value={bwText}
